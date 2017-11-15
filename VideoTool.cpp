@@ -5,6 +5,12 @@
 #include "opencv2/highgui/highgui.hpp"
 //#include <opencv2\cv.h>
 #include "opencv2/opencv.hpp"
+ #include <unistd.h>
+
+#include<math.h>
+#include <netdb.h>
+#include <netinet/in.h>
+
 
 using namespace std;
 using namespace cv;
@@ -104,7 +110,7 @@ void drawObject(int x, int y, Mat &frame) {
 	else line(frame, Point(x, y), Point(FRAME_WIDTH, y), Scalar(0, 255, 0), 2);
 
 	putText(frame, intToString(x) + "," + intToString(y), Point(x, y + 30), 1, 1, Scalar(0, 255, 0), 2);
-	//cout << "x,y: " << x << ", " << y;
+//	cout << "x,y: " << x << ", " << y;
 
 }
 void morphOps(Mat &thresh) {
@@ -175,9 +181,93 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed) {
 		else putText(cameraFeed, "TOO MUCH NOISE! ADJUST FILTER", Point(0, 50), 1, 2, Scalar(0, 0, 255), 2);
 	}
 }
-int main(int argc, char* argv[])
+
+void giveCommand(char *host, char *port)
 {
 
+ int sockfd, portno, n;
+   struct sockaddr_in serv_addr;
+   struct hostent *server;
+   
+   char buffer[256];
+   
+  
+	
+   portno = atoi(port);
+   
+   /* Create a socket point */
+   sockfd = socket(AF_INET, SOCK_STREAM, 0);
+   
+   if (sockfd < 0) {
+      perror("ERROR opening socket");
+      exit(1);
+   }
+	
+   server = gethostbyname(host);
+   
+   if (server == NULL) {
+      fprintf(stderr,"ERROR, no such host\n");
+      exit(0);
+   }
+  // printf("Test");
+   bzero((char *) &serv_addr, sizeof(serv_addr));
+   serv_addr.sin_family = AF_INET;
+   bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+   serv_addr.sin_port = htons(portno);
+   
+   /* Now connect to the server */
+   if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+      perror("ERROR connecting");
+      exit(1);
+   }
+   
+   /* Now ask for a message from the user, this message
+      * will be read by server
+   */
+   printf("Please enter the message: ");
+   bzero(buffer,256);
+   fgets(buffer,255,stdin);
+   
+ 	while(strncmp(buffer,"exit",strlen("exit"))!=0){
+  
+   /* Send message to the server */
+   n = write(sockfd, buffer, strlen(buffer));
+   
+   if (n < 0) {
+      perror("ERROR writing to socket");
+      exit(1);
+   }
+   
+   /* Now read server response */
+   bzero(buffer,256);
+   n = read(sockfd, buffer, 255);
+   
+   if (n < 0) {
+      perror("ERROR reading from socket");
+      exit(1);
+   }
+	
+   printf("%s\n",buffer);
+    printf("Please enter the message: ");
+    
+    fgets(buffer,255,stdin);
+    }
+   
+}
+
+void dist(int x1, int y1, int x2, int y2)
+{
+    double dist;
+    
+    dist=sqrt( (x2-x1)^2+(y2-y1)^2 );
+
+
+}
+
+
+int main(int argc, char* argv[])
+{
+  int x1,y1,x2,y2;
 	//some boolean variables for different functionality within this
 	//program
 	bool trackObjects = true;
@@ -219,7 +309,7 @@ int main(int argc, char* argv[])
 		//threshold matrix
 		
 	    
-     inRange(HSV, Scalar(19, 110, 0), Scalar(166, 236, 256), threshold);
+     inRange(HSV, Scalar(126, 61, 38), Scalar(177, 236, 256), threshold);
 		//perform morphological operations on thresholded image to eliminate noise
 		//and emphasize the filtered object(s)
 		if (useMorphOps)
@@ -229,7 +319,8 @@ int main(int argc, char* argv[])
 		//filtered object
 		if (trackObjects)
 			trackFilteredObject(x, y, threshold, cameraFeed);
-      
+       x1=x;
+       y1=y;
       inRange(HSV, Scalar(19, 110, 0), Scalar(177, 206, 256), threshold);
 		//perform morphological operations on thresholded image to eliminate noise
 		//and emphasize the filtered object(s)
@@ -240,7 +331,9 @@ int main(int argc, char* argv[])
 		//filtered object
 		if (trackObjects)
 			trackFilteredObject(x, y, threshold, cameraFeed);
-      
+      x2=x;
+      y2=y;
+   
 		//show frames
 		imshow(windowName2, threshold);
 		imshow(windowName, cameraFeed);
@@ -249,8 +342,18 @@ int main(int argc, char* argv[])
 		//delay 30ms so that screen can refresh.
 		//image will not appear without this waitKey() command
 		waitKey(30);
+   printf("x1=%d,y1=%d,x2=%d,y2=%d",x1,y1,x2,y2);
 	}
 
+
+/* if (argc < 3) {
+      fprintf(stderr,"usage %s hostname port\n", argv[0]);
+      exit(0);
+   }
+	
+ giveCommand(argv[1],argv[2]);
+*/
+printf("x1=%d,y1=%d,x2=%d,y2=%d",x1,y1,x2,y2);
 	return 0;
 }
 

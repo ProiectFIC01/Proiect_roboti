@@ -1,0 +1,1 @@
+/home/cloud/Brh.Ymo/Proiect_roboti/CMakeFiles/VideoTool.dir
